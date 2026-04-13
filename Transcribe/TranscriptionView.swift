@@ -2,13 +2,6 @@ import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
 
-/// Thread-safe box for Timer references that need to cross Sendable boundaries.
-/// Only used for invalidation from completion handlers.
-private final class SendableTimerBox: @unchecked Sendable {
-    var timer: Timer?
-    func invalidate() { timer?.invalidate() }
-}
-
 // Custom button style with press animation
 struct TranscriptionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -347,53 +340,6 @@ struct TranscriptionView: View {
                     }
                     .monospacedDigit()
                     
-                } else if viewModel.isPreprocessing {
-                    // Show spinner for preprocessing
-                    AccentSpinner(size: 32, lineWidth: 3)
-                    
-                    Text(viewModel.statusMessage.isEmpty ? localized("preparing_audio_file") : viewModel.statusMessage)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
-                } else if viewModel.isProcessingChunks {
-                    // Show progress bar for chunk transcription (stay visible between chunks)
-                    VStack(spacing: 16) {
-                        Text(String(format: localized("chunk_of"), viewModel.currentChunk, viewModel.totalChunks))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.textSecondary)
-                        
-                        ProgressView(value: viewModel.chunkProgress)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(Color.primaryAccent)
-                            .frame(width: 260)
-                            .scaleEffect(y: 2)
-                    }
-                    
-                    Text(viewModel.statusMessage.isEmpty ? localized("preparing_audio_file") : viewModel.statusMessage)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
-                } else if viewModel.showSingleFileProgress {
-                    // Show progress bar for single file transcription
-                    VStack(spacing: 16) {
-                        Text(viewModel.statusMessage.isEmpty ? localized("transcribing") : viewModel.statusMessage)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.textSecondary)
-                        
-                        ProgressView(value: viewModel.singleFileProgress)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(Color.primaryAccent)
-                            .frame(width: 260)
-                            .scaleEffect(y: 2)
-                    }
-                    
-                    Text(viewModel.statusMessage.isEmpty ? localized("preparing_audio_file") : viewModel.statusMessage)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 260)
                 } else {
                     AccentSpinner(size: 32, lineWidth: 3)
                     
@@ -977,86 +923,40 @@ struct TranscriptionView: View {
     }
     
     private var hasLLMModelSelected: Bool {
-        let provider = settingsManager.preferredLLMProvider
-        if provider == "berget" {
-            return !settingsManager.bergetKey.isEmpty && !settingsManager.selectedBergetLLMModel.isEmpty
-        } else {
-            return !settingsManager.selectedOllamaModel.isEmpty
-        }
+        return !settingsManager.selectedOllamaModel.isEmpty
     }
-    
+
     private var selectedLLMDisplayName: String {
-        let provider = settingsManager.preferredLLMProvider
-        if provider == "berget" {
-            if settingsManager.bergetKey.isEmpty {
-                return localized("select_model")
-            }
-            // Find display name from registry
-            if let model = LLMCloudModelsView.bergetLLMModels.first(where: { $0.id == settingsManager.selectedBergetLLMModel }) {
-                return model.displayName
-            }
+        if settingsManager.selectedOllamaModel.isEmpty {
             return localized("select_model")
-        } else {
-            if settingsManager.selectedOllamaModel.isEmpty {
-                return localized("select_model")
-            }
-            return settingsManager.selectedOllamaModel
         }
+        return settingsManager.selectedOllamaModel
     }
-    
+
     private var llmModelPopover: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Berget section (only if API key configured)
-            if !settingsManager.bergetKey.isEmpty {
-                Text("Berget AI")
+            // Ollama section (only if models available)
+            if !settingsManager.ollamaModels.isEmpty {
+                Text("Ollama")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
-                
-                ForEach(LLMCloudModelsView.bergetLLMModels) { model in
-                    llmPopoverRow(
-                        name: model.displayName,
-                        subtitle: model.size,
-                        isSelected: settingsManager.preferredLLMProvider == "berget" && settingsManager.selectedBergetLLMModel == model.id
-                    ) {
-                        settingsManager.preferredLLMProvider = "berget"
-                        settingsManager.selectedBergetLLMModel = model.id
-                        showLLMPopover = false
-                    }
-                }
-            }
-            
-            // Ollama section (only if models available)
-            if !settingsManager.ollamaModels.isEmpty {
-                if !settingsManager.bergetKey.isEmpty {
-                    Divider().padding(.horizontal, 12).padding(.vertical, 4)
-                }
-                
-                Text("Ollama")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.top, settingsManager.bergetKey.isEmpty ? 8 : 0)
-                    .padding(.bottom, 4)
-                
+
                 ForEach(settingsManager.ollamaModels, id: \.self) { model in
                     llmPopoverRow(
                         name: model,
                         subtitle: nil,
-                        isSelected: settingsManager.preferredLLMProvider == "ollama" && settingsManager.selectedOllamaModel == model
+                        isSelected: settingsManager.selectedOllamaModel == model
                     ) {
                         settingsManager.preferredLLMProvider = "ollama"
                         settingsManager.selectedOllamaModel = model
                         showLLMPopover = false
                     }
                 }
-            }
-            
-            // No models available
-            if settingsManager.bergetKey.isEmpty && settingsManager.ollamaModels.isEmpty {
-                Text(localized("api_key_required"))
+            } else {
+                Text(localized("ollama_not_installed"))
                     .font(.system(size: 12))
                     .foregroundColor(.textTertiary)
                     .padding(.horizontal, 12)
@@ -1112,24 +1012,21 @@ struct TranscriptionView: View {
         }
         
         let transcription = viewModel.transcribedText
-        let provider: LLMService.Provider = settingsManager.preferredLLMProvider == "berget" ? .berget : .ollama
-        let model = provider == .berget ? settingsManager.selectedBergetLLMModel : settingsManager.selectedOllamaModel
-        let apiKey = settingsManager.bergetKey
+        let model = settingsManager.selectedOllamaModel
         let ollamaHost = settingsManager.ollamaHost
-        
+
         isProcessingLLM = true
         viewModel.processedText = ""
-        
+
         let llmService = LLMService()
-        
+
         llmTask = Task {
             do {
                 let stream = llmService.streamCompletion(
                     systemPrompt: systemPrompt,
                     userMessage: transcription,
-                    provider: provider,
+                    provider: .ollama,
                     model: model,
-                    apiKey: apiKey,
                     ollamaHost: ollamaHost
                 )
                 
@@ -1266,14 +1163,6 @@ class TranscriptionViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var transcriptionTime: Double = 0
     @Published var statusMessage: String = ""
-    @Published var currentChunk = 0
-    @Published var totalChunks = 0
-    @Published var chunkProgress: Double = 0
-    @Published var isPreprocessing = false
-    @Published var showSingleFileProgress = false
-    @Published var singleFileProgress: Double = 0
-    @Published var isProcessingChunks = false
-    @Published var failedChunks: [Int] = []
     @Published var showExportError = false
     @Published var exportErrorMessage = ""
     @Published var processedText = ""
@@ -1291,15 +1180,11 @@ class TranscriptionViewModel: ObservableObject {
     private var timer: Timer?
     private var transcriptionService: TranscriptionService?  // For WhisperKit streaming
     private let unifiedTranscriptionService = UnifiedTranscriptionService()  // For KB models
-    private var bergetService: BergetTranscriptionService?
     private var transcriptionStartTime: Date?
     private var transcriptionTimer: Timer?
-    
+
     // Get selected model from UserDefaults
     @AppStorage("selectedTranscriptionModel") private var selectedModel: String = "kb_whisper-small-coreml"
-    private var bergetKey: String {
-        KeychainHelper.get("bergetAPIKey") ?? ""
-    }
     
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -1330,14 +1215,6 @@ class TranscriptionViewModel: ObservableObject {
         transcriptionStartTime = nil
         transcriptionTimer?.invalidate()
         transcriptionTimer = nil
-        currentChunk = 0
-        totalChunks = 0
-        chunkProgress = 0
-        isPreprocessing = false
-        showSingleFileProgress = false
-        singleFileProgress = 0
-        isProcessingChunks = false
-        failedChunks = []
         
         // Start fresh
         startTranscription()
@@ -1351,14 +1228,8 @@ class TranscriptionViewModel: ObservableObject {
         // Get selected language
         let selectedLanguage = LanguageManager.shared.selectedLanguage.code == "auto" ? nil : LanguageManager.shared.selectedLanguage.code
         
-        // Determine which service to use based on selected model
-        if selectedModel == "berget-kb-whisper-large" {
-            // Use Berget service
-            startBergetTranscription(language: selectedLanguage)
-        } else {
-            // Use local WhisperKit service
-            startLocalTranscription()
-        }
+        // Use local WhisperKit service
+        startLocalTranscription()
     }
     
     private func startLocalTranscription() {
@@ -1414,207 +1285,6 @@ class TranscriptionViewModel: ObservableObject {
         }
     }
     
-    private func startBergetTranscription(language: String?) {
-        guard !bergetKey.isEmpty else {
-            handleTranscriptionError(CloudTranscriptionError.apiError("Berget API key not configured"))
-            return
-        }
-        
-        statusMessage = localized("preparing_audio_file")
-        bergetService = BergetTranscriptionService(apiKey: bergetKey)
-        
-        Task {
-            do {
-                // Preprocess audio
-                await MainActor.run {
-                    self.isPreprocessing = true
-                }
-                
-                let processedAudio = try await AudioPreprocessor.shared.preprocessAudio(
-                    url: fileURL,
-                    onProgress: { message in
-                        DispatchQueue.main.async {
-                            self.statusMessage = message
-                        }
-                    }
-                )
-                
-                await MainActor.run {
-                    self.isPreprocessing = false
-                    self.totalChunks = processedAudio.chunks.count
-                }
-                
-                if processedAudio.chunks.count > 1 {
-                    // Handle chunked transcription
-                    await transcribeChunksWithBerget(processedAudio: processedAudio, language: language)
-                } else {
-                    // Single file transcription
-                    await transcribeSingleFileWithBerget(url: processedAudio.chunks[0].url, language: language)
-                }
-                
-                // Cleanup temporary files
-                AudioPreprocessor.shared.cleanupProcessedAudio(processedAudio)
-            } catch {
-                await MainActor.run {
-                    self.handleTranscriptionError(error)
-                }
-            }
-        }
-    }
-    
-    private func transcribeSingleFileWithBerget(url: URL, language: String?) async {
-        await MainActor.run {
-            self.statusMessage = localized("sending_audio_berget")
-            self.showSingleFileProgress = true
-            self.singleFileProgress = 0
-        }
-        
-        // Get duration for progress estimation
-        let asset = AVAsset(url: url)
-        let duration = try? await asset.load(.duration)
-        let durationInSeconds = duration != nil ? CMTimeGetSeconds(duration!) : 60.0
-        let expectedTime = max(durationInSeconds / 9.0, 2.0) // 9x realtime with minimum 2 seconds
-        
-        // Start progress timer
-        let timerBox = SendableTimerBox()
-        await MainActor.run {
-            timerBox.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
-                self.singleFileProgress = min(self.singleFileProgress + (0.1 / expectedTime), 0.95)
-            }
-        }
-        
-        bergetService?.transcribe(
-            audioURL: url,
-            language: language,
-            onProgress: { text in
-                DispatchQueue.main.async {
-                    self.transcribedText = text
-                    self.wordCount = text.split(separator: " ").count
-                    self.statusMessage = localized("transcribing")
-                    self.singleFileProgress = min(self.singleFileProgress, 0.8) // Update progress if we get intermediate results
-                }
-            },
-            completion: { result in
-                timerBox.invalidate()
-                DispatchQueue.main.async {
-                    self.singleFileProgress = 1.0
-                    self.showSingleFileProgress = false
-                    
-                    switch result {
-                    case .success(let transcriptionResult):
-                        self.transcribedText = transcriptionResult.text
-                        self.segments = transcriptionResult.segments.map { segment in
-                            TranscriptionSegmentData(
-                                start: segment.start,
-                                end: segment.end,
-                                text: segment.text,
-                                words: nil
-                            )
-                        }
-                        self.wordCount = transcriptionResult.text.split(separator: " ").count
-                        self.finishTranscription()
-                    case .failure(let error):
-                        self.handleTranscriptionError(error)
-                    }
-                }
-            }
-        )
-    }
-    
-    @MainActor
-    private func transcribeChunksWithBerget(processedAudio: AudioPreprocessor.ProcessedAudio, language: String?) async {
-        var transcriptionResults: [(chunk: AudioPreprocessor.AudioChunk, result: TranscriptionResult)] = []
-        
-        // Set flag to indicate we're processing chunks
-        self.isProcessingChunks = true
-        self.failedChunks = []
-        
-        for (index, chunk) in processedAudio.chunks.enumerated() {
-            self.currentChunk = index + 1
-            self.statusMessage = String(format: localized("transcribing_chunk"), index + 1, processedAudio.chunks.count)
-            self.chunkProgress = 0
-            
-            // Start a timer to simulate progress (9x realtime)
-            let chunkDuration = chunk.endTime - chunk.startTime
-            let expectedTime = chunkDuration / 9.0
-            let chunkTimerBox = SendableTimerBox()
-            
-            chunkTimerBox.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
-                self.chunkProgress = min(self.chunkProgress + (0.1 / expectedTime), 0.95)
-            }
-            
-            await withCheckedContinuation { continuation in
-                bergetService?.transcribe(
-                    audioURL: chunk.url,
-                    language: language,
-                    onProgress: { text in
-                        DispatchQueue.main.async {
-                            // Update chunk progress
-                            self.chunkProgress = 0.5
-                        }
-                    },
-                    completion: { result in
-                        chunkTimerBox.invalidate()
-                        
-                        DispatchQueue.main.async {
-                            self.chunkProgress = 1.0
-                            
-                            switch result {
-                            case .success(let transcriptionResult):
-                                transcriptionResults.append((chunk: chunk, result: transcriptionResult))
-                                
-                            case .failure:
-                                self.failedChunks.append(index + 1)
-                            }
-                            
-                            continuation.resume()
-                        }
-                    }
-                )
-            }
-        }
-        
-        // Merge results
-        if !transcriptionResults.isEmpty {
-            await MainActor.run {
-                self.statusMessage = localized("merging_results")
-                
-                let mergedResult = AudioPreprocessor.shared.mergeChunkedTranscriptions(transcriptionResults)
-                
-                if mergedResult.text.isEmpty && transcriptionResults.count > 0 {
-                    // Fallback: just concatenate all texts if merge failed
-                    self.transcribedText = transcriptionResults.map { $0.result.text }.joined(separator: " ")
-                    self.segments = []
-                } else {
-                    self.transcribedText = mergedResult.text
-                    self.segments = mergedResult.segments.map { segment in
-                        TranscriptionSegmentData(
-                            start: segment.start,
-                            end: segment.end,
-                            text: segment.text,
-                            words: nil
-                        )
-                    }
-                }
-                
-                // Warn about failed chunks
-                if !self.failedChunks.isEmpty {
-                    let failedList = self.failedChunks.map { String($0) }.joined(separator: ", ")
-                    self.transcribedText += "\n\n⚠️ Warning: Chunk(s) \(failedList) of \(processedAudio.chunks.count) failed to transcribe. Some audio may be missing from the result."
-                }
-                
-                self.wordCount = self.transcribedText.split(separator: " ").count
-                self.isProcessingChunks = false
-                self.finishTranscription()
-            }
-        } else {
-            await MainActor.run {
-                self.isProcessingChunks = false
-                self.handleTranscriptionError(CloudTranscriptionError.apiError("All \(processedAudio.chunks.count) chunks failed to transcribe. No results received."))
-            }
-        }
-    }
-    
     private func finishTranscription() {
         self.isTranscribing = false
         self.estimatedTimeRemaining = 0
@@ -1624,55 +1294,28 @@ class TranscriptionViewModel: ObservableObject {
         if let startTime = self.transcriptionStartTime {
             self.transcriptionTime = Date().timeIntervalSince(startTime)
         }
-        // Reset chunk tracking
-        self.currentChunk = 0
-        self.totalChunks = 0
-        self.chunkProgress = 0
-        self.isPreprocessing = false
-        self.showSingleFileProgress = false
-        self.singleFileProgress = 0
-        self.isProcessingChunks = false
         self.statusMessage = ""
     }
     
     private func handleTranscriptionError(_ error: Error) {
         self.isTranscribing = false
         self.errorMessage = error.localizedDescription
-        
+
         // Stop timer on error
         self.transcriptionTimer?.invalidate()
         self.transcriptionTimer = nil
-        
-        // Reset all progress tracking
-        self.currentChunk = 0
-        self.totalChunks = 0
-        self.chunkProgress = 0
-        self.isPreprocessing = false
-        self.isProcessingChunks = false
-        self.showSingleFileProgress = false
-        self.singleFileProgress = 0
-        
+
         // Show error in UI
-        let modelName = getModelDisplayName(selectedModel)
         self.transcribedText = """
         ⚠️ Transcription Error
-        
-        Model: \(modelName)
+
+        Model: \(selectedModel)
         Error: \(error.localizedDescription)
-        
+
         Please check:
-        1. API key is configured (for cloud models)
-        2. Model is downloaded (for local models)
-        3. Audio file is valid
-        4. Internet connection (for cloud models)
+        1. Model is downloaded
+        2. Audio file is valid
         """
-    }
-    
-    private func getModelDisplayName(_ modelId: String) -> String {
-        switch modelId {
-        case "berget-kb-whisper-large": return "KB Whisper Large (Berget)"
-        default: return modelId
-        }
     }
     
     func togglePlayPause() {

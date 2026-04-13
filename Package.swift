@@ -16,16 +16,12 @@ let package = Package(
     dependencies: [
         // WhisperKit for on-device speech recognition
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.5.0"),
-
-        // YouTubeKit for YouTube video downloading
-        .package(url: "https://github.com/alexeichhorn/YouTubeKit.git", from: "0.3.0"),
     ],
     targets: [
         .target(
             name: "Transcribe",
             dependencies: [
                 "WhisperKit",
-                "YouTubeKit"
             ],
             path: "Transcribe",
             exclude: [

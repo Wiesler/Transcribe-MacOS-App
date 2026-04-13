@@ -56,13 +56,6 @@ struct SettingsView: View {
                             action: { selectedSection = "local_models" }
                         )
                         
-                        SettingsMenuItem(
-                            icon: "cloud",
-                            title: localized("cloud_models"),
-                            isSelected: selectedSection == "cloud_models",
-                            action: { selectedSection = "cloud_models" }
-                        )
-                        
                         // Language Models Section
                         SectionHeader(title: localized("language_models").uppercased())
                             .padding(.top, 16)
@@ -72,13 +65,6 @@ struct SettingsView: View {
                             title: localized("local_models"),
                             isSelected: selectedSection == "llm_local",
                             action: { selectedSection = "llm_local" }
-                        )
-                        
-                        SettingsMenuItem(
-                            icon: "cloud",
-                            title: localized("cloud_models"),
-                            isSelected: selectedSection == "llm_cloud",
-                            action: { selectedSection = "llm_cloud" }
                         )
                         
                         // Process Text Section
@@ -112,14 +98,10 @@ struct SettingsView: View {
                         GeneralSettingsView()
                     case "local_models":
                         LocalModelsView()
-                    case "cloud_models":
-                        CloudModelsView()
                     case "api":
                         APIKeysView()
                     case "llm_local":
                         LLMLocalModelsView()
-                    case "llm_cloud":
-                        LLMCloudModelsView()
                     case "prompts":
                         TextProcessingPromptsView()
                     default:
@@ -307,197 +289,10 @@ struct LocalModelsView: View {
     }
 }
 
-struct CloudModelsView: View {
-    @EnvironmentObject var settingsManager: SettingsManager
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "cloud")
-                    .font(.system(size: 32))
-                    .foregroundStyle(LinearGradient.accentGradient)
-                Text(localized("cloud_models"))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(.textPrimary)
-            }
-            .padding(.horizontal, 40)
-            .padding(.top, 30)
-            .padding(.bottom, 40)
-            
-            VStack(alignment: .leading, spacing: 25) {
-                SettingsCard {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Label {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(settingsManager.bergetKey.isEmpty ? Color.orange : Color.green)
-                                    .frame(width: 8, height: 8)
-                                Text("Berget")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(.textPrimary)
-                            }
-                        } icon: {
-                            Image(systemName: "cloud")
-                                .font(.system(size: 18))
-                                .foregroundStyle(LinearGradient.accentGradient)
-                        }
-                        
-                        Text(localized("cloud_transcription_description"))
-                            .font(.system(size: 13))
-                            .foregroundColor(.textSecondary)
-                        
-                        Divider()
-                        
-                        if !settingsManager.bergetKey.isEmpty {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("KB Whisper Large")
-                                        .font(.system(size: 13, weight: .medium))
-                                    Text(localized("cloud_transcription_model_subtitle"))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.textSecondary)
-                                }
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 6, height: 6)
-                                    Text(localized("available"))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.primaryAccent)
-                                }
-                            }
-                            .padding(12)
-                            .background(Color.elevatedSurface)
-                            .cornerRadius(8)
-                        } else {
-                            HStack(spacing: 8) {
-                                Image(systemName: "key")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                                Text(localized("api_key_required"))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 40)
-            
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-struct ModelRow: View {
-    let modelId: String
-    let name: String
-    let size: String
-    let description: String
-    let isDownloaded: Bool
-    let isDownloading: Bool
-    let downloadProgress: Double
-    let onDownload: () -> Void
-    let onDelete: () -> Void
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(name)
-                        .font(.system(size: 13, weight: .medium))
-                    
-                    if isDownloaded {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                    }
-                }
-                
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Text(size)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(width: 60, alignment: .trailing)
-            
-            if isDownloading {
-                HStack(spacing: 8) {
-                    ProgressView(value: downloadProgress)
-                        .progressViewStyle(.linear)
-                        .frame(width: 80)
-                    
-                    Text("\(Int(downloadProgress * 100))%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(width: 35)
-                }
-            } else if isDownloaded {
-                Button(action: onDelete) {
-                    Text(localized("remove"))
-                        .font(.caption)
-                        .frame(width: 70)
-                }
-                .buttonStyle(.bordered)
-            } else {
-                Button(action: onDownload) {
-                    Text(localized("download"))
-                        .font(.caption)
-                        .frame(width: 70)
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(12)
-        .background(Color.elevatedSurface)
-        .cornerRadius(8)
-    }
-}
-
-struct CloudModelRow: View {
-    let provider: String
-    let model: String
-    let status: String
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(provider)
-                    .font(.system(size: 13, weight: .medium))
-                
-                Text(model)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Text(status)
-                .font(.caption)
-                .foregroundColor(status == "Available" ? .green : .orange)
-        }
-        .padding(12)
-        .background(Color.elevatedSurface)
-        .cornerRadius(8)
-    }
-}
-
 struct APIKeysView: View {
     @EnvironmentObject var settingsManager: SettingsManager
     @StateObject private var localizationManager = LocalizationManager.shared
-    @State private var tempBergetKey = ""
-    @State private var showBergetKey = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -512,64 +307,8 @@ struct APIKeysView: View {
             .padding(.horizontal, 40)
             .padding(.top, 30)
             .padding(.bottom, 40)
-            
+
             VStack(alignment: .leading, spacing: 32) {
-                // Berget
-                SettingsCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label {
-                            Text("Berget 🇸🇪")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.textPrimary)
-                        } icon: {
-                            Image(systemName: "mountain.2")
-                                .font(.system(size: 18))
-                                .foregroundStyle(LinearGradient.accentGradient)
-                        }
-                        
-                        Text(localized("berget_cloud_service_description"))
-                            .font(.system(size: 12))
-                            .foregroundColor(.textSecondary)
-                        
-                        HStack {
-                            if showBergetKey {
-                                TextField(localized("api_key"), text: $tempBergetKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 400)
-                            } else {
-                                SecureField(localized("api_key"), text: $tempBergetKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 400)
-                            }
-                            
-                            Button(action: { showBergetKey.toggle() }) {
-                                Image(systemName: showBergetKey ? "eye.slash" : "eye")
-                            }
-                            .buttonStyle(.borderless)
-                            
-                            Button(localized("save")) {
-                                settingsManager.saveAPIKey(tempBergetKey, for: .berget)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.regular)
-                            .disabled(tempBergetKey.isEmpty)
-                            
-                            if !settingsManager.bergetKey.isEmpty {
-                                Button(localizationManager.currentLanguage == "sv" ? "Ta bort" : "Remove") {
-                                    settingsManager.saveAPIKey("", for: .berget)
-                                    tempBergetKey = ""
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-                            }
-                        }
-                        
-                        Link(localized("get_api_key_berget"), destination: URL(string: "https://berget.ai")!)
-                            .font(.system(size: 12))
-                            .foregroundColor(.primaryAccent)
-                    }
-                }
-                
                 // Ollama
                 SettingsCard {
                     VStack(alignment: .leading, spacing: 12) {
@@ -639,9 +378,6 @@ struct APIKeysView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onAppear {
-            tempBergetKey = settingsManager.bergetKey
-        }
     }
 }
 
@@ -751,103 +487,6 @@ struct LLMLocalModelsView: View {
                 await settingsManager.checkOllamaConnection()
             }
         }
-    }
-}
-
-struct BergetLLMModel: Identifiable {
-    let id: String        // API model ID
-    let displayName: String
-    let size: String      // e.g. "70B"
-}
-
-struct LLMCloudModelsView: View {
-    @EnvironmentObject var settingsManager: SettingsManager
-    
-    static let bergetLLMModels: [BergetLLMModel] = [
-        BergetLLMModel(id: "meta-llama/Llama-3.3-70B-Instruct", displayName: "Llama 3.3 70B Instruct", size: "70B"),
-        BergetLLMModel(id: "meta-llama/Llama-3.1-8B-Instruct", displayName: "Llama 3.1 8B Instruct", size: "8B"),
-        BergetLLMModel(id: "mistralai/Mistral-Small-3.2-24B-Instruct-2506", displayName: "Mistral Small 3.2 24B", size: "24B"),
-        BergetLLMModel(id: "openai/gpt-oss-120b", displayName: "GPT-OSS 120B", size: "120B"),
-        BergetLLMModel(id: "zai-org/GLM-4.7", displayName: "GLM 4.7", size: ""),
-    ]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Image(systemName: "cloud")
-                    .font(.system(size: 32))
-                    .foregroundStyle(LinearGradient.accentGradient)
-                Text(localized("cloud_models"))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(.textPrimary)
-            }
-            .padding(.horizontal, 40)
-            .padding(.top, 30)
-            .padding(.bottom, 40)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 25) {
-                    // Berget Models (GDPR safe)
-                    SettingsCard {
-                        VStack(alignment: .leading, spacing: 15) {
-                            Label {
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(settingsManager.bergetKey.isEmpty ? Color.gray : Color.green)
-                                        .frame(width: 8, height: 8)
-                                    Text("Berget AI")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(.textPrimary)
-                                }
-                            } icon: {
-                                Image(systemName: "cloud")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(LinearGradient.accentGradient)
-                            }
-                            
-                            Text(localized("berget_llm_description"))
-                                .font(.system(size: 13))
-                                .foregroundColor(.textSecondary)
-                            
-                            if settingsManager.bergetKey.isEmpty {
-                                Text(localized("api_key_required"))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                            }
-                            
-                            Divider()
-                            
-                            VStack(spacing: 8) {
-                                ForEach(Self.bergetLLMModels) { model in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(model.displayName)
-                                                .font(.system(size: 13, weight: .medium))
-                                            if !model.size.isEmpty {
-                                                Text(model.size)
-                                                    .font(.system(size: 11))
-                                                    .foregroundColor(.textSecondary)
-                                            }
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Circle()
-                                            .fill(settingsManager.bergetKey.isEmpty ? Color.gray.opacity(0.5) : Color.green)
-                                            .frame(width: 8, height: 8)
-                                    }
-                                    .padding(12)
-                                    .background(Color.elevatedSurface)
-                                    .cornerRadius(8)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 40)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 

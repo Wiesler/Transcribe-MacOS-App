@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4039A38C2F65BF7900E33982 /* Transcribe.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4039A38B2F65BF7900E33982 /* Transcribe.xcconfig */; };
-		4042913A2E793C6C00DB2587 /* YouTubeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 404291392E793C6C00DB2587 /* YouTubeKit */; };
 		4087E8D52E769BAF00C23FC9 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4087E8D42E769BAF00C23FC9 /* Accelerate.framework */; };
 		40DACEB62E75F6ED00E0B532 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 40DACEB52E75F6ED00E0B532 /* WhisperKit */; };
 		40DACEB82E75F6ED00E0B532 /* whisperkit-cli in Frameworks */ = {isa = PBXBuildFile; productRef = 40DACEB72E75F6ED00E0B532 /* whisperkit-cli */; };
@@ -68,7 +67,6 @@
 				4087E8D52E769BAF00C23FC9 /* Accelerate.framework in Frameworks */,
 				40DACEB62E75F6ED00E0B532 /* WhisperKit in Frameworks */,
 				40DACEB82E75F6ED00E0B532 /* whisperkit-cli in Frameworks */,
-				4042913A2E793C6C00DB2587 /* YouTubeKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -144,7 +142,6 @@
 			packageProductDependencies = (
 				40DACEB52E75F6ED00E0B532 /* WhisperKit */,
 				40DACEB72E75F6ED00E0B532 /* whisperkit-cli */,
-				404291392E793C6C00DB2587 /* YouTubeKit */,
 			);
 			productName = Transcribe;
 			productReference = 40DACE4D2E75861E00E0B532 /* Transcribe.app */;
@@ -232,7 +229,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				40DACEB42E75F6ED00E0B532 /* XCRemoteSwiftPackageReference "WhisperKit" */,
-				404291382E793C6C00DB2587 /* XCRemoteSwiftPackageReference "YouTubeKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 40DACE4E2E75861E00E0B532 /* Products */;
@@ -644,14 +640,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		404291382E793C6C00DB2587 /* XCRemoteSwiftPackageReference "YouTubeKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/alexeichhorn/YouTubeKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.9;
-			};
-		};
 		40DACEB42E75F6ED00E0B532 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
@@ -663,11 +651,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		404291392E793C6C00DB2587 /* YouTubeKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 404291382E793C6C00DB2587 /* XCRemoteSwiftPackageReference "YouTubeKit" */;
-			productName = YouTubeKit;
-		};
 		40DACEB52E75F6ED00E0B532 /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 40DACEB42E75F6ED00E0B532 /* XCRemoteSwiftPackageReference "WhisperKit" */;

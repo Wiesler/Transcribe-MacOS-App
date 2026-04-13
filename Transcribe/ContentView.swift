@@ -8,14 +8,11 @@ struct ContentView: View {
     @ObservedObject private var languageManager = LanguageManager.shared
     @ObservedObject private var modelManager = ModelManager.shared
     @State private var isDraggingFile = false
-    @AppStorage("selectedTranscriptionModel") private var selectedModel: String = "kb_whisper-small-coreml"
+    @AppStorage("selectedTranscriptionModel") private var selectedModel: String = "kb_whisper-large-coreml"
     @AppStorage("appColorScheme") private var appColorScheme: String = "dark"
     @State private var showLanguagePopover = false
     @State private var showModelPopover = false
     @State private var showFileImporter = false
-    @State private var showYouTubeView = false
-    private let whisperKitService = WhisperKitService()
-    
     var body: some View {
         Group {
             if appState.showRecordingView {
@@ -74,21 +71,10 @@ struct ContentView: View {
                 break
             }
         }
-        .sheet(isPresented: $showYouTubeView) {
-            YouTubeTranscriptionView()
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowTranscriptionView"))) { notification in
             if let userInfo = notification.userInfo,
                let fileURL = userInfo["fileURL"] as? URL {
                 appState.openFileForTranscription(fileURL)
-            }
-        }
-        .task {
-            // Auto-download default model on first launch if no models are downloaded
-            let defaultModelId = "kb_whisper-small-coreml"
-            if modelManager.downloadedModels.isEmpty && modelManager.isDownloading[defaultModelId] != true {
-                selectedModel = defaultModelId
-                await downloadModel(defaultModelId)
             }
         }
     }
@@ -151,18 +137,6 @@ struct ContentView: View {
                 .font(.system(size: 12))
                 .foregroundColor(.textSecondary)
             
-            Button(action: {
-                if let url = URL(string: "https://github.com/mickekring/Transcribe-MacOS-App") {
-                    NSWorkspace.shared.open(url)
-                }
-            }) {
-                Text(localizationManager.currentLanguage == "sv" ? "Hjälp / Support" : "Help / Support")
-                    .font(.system(size: 12))
-                    .foregroundColor(.primaryAccent)
-                    .underline()
-            }
-            .buttonStyle(.plain)
-            
             // Version and build number
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
@@ -191,14 +165,6 @@ struct ContentView: View {
                 icon: "speaker.wave.3.fill",
                 title: localized("system_audio"),
                 action: { appState.showSystemAudioView = true }
-            )
-            
-            FeatureCard(
-                icon: "play.rectangle.fill",
-                title: "YouTube",
-                action: {
-                    showYouTubeView = true
-                }
             )
         }
     }
@@ -302,14 +268,6 @@ struct ContentView: View {
     
     func newRecording() {
         appState.showRecordingView = true
-    }
-    
-    func downloadModel(_ modelId: String) async {
-        do {
-            try await whisperKitService.downloadOnly(modelId: modelId)
-        } catch {
-            // Model download failed
-        }
     }
     
     // MARK: - Dropdown Views
@@ -436,13 +394,9 @@ struct ContentView: View {
             showModelPopover.toggle()
         }) {
             HStack(spacing: 6) {
-                if modelManager.isDownloading.values.contains(true) {
-                    AccentSpinner(size: 18, lineWidth: 2)
-                } else {
-                    Image(systemName: getModelIcon(selectedModel))
-                        .font(.system(size: 18))
-                        .foregroundStyle(LinearGradient.accentGradient)
-                }
+                Image(systemName: getModelIcon(selectedModel))
+                    .font(.system(size: 18))
+                    .foregroundStyle(LinearGradient.accentGradient)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(localized("model"))
                         .font(.system(size: 10))
@@ -488,19 +442,6 @@ struct ContentView: View {
                 ForEach(ModelManager.openAIModels, id: \.self) { modelId in
                     modelDropdownRow(modelId: modelId, icon: "laptopcomputer")
                 }
-                
-                // Cloud models — only if Berget API key is configured
-                if !settingsManager.bergetKey.isEmpty {
-                    Divider().padding(.horizontal, 12).padding(.vertical, 4)
-                    
-                    Text(localized("cloud_models"))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 4)
-                    
-                    modelDropdownRow(modelId: "berget-kb-whisper-large", icon: "cloud")
-                }
             }
             .padding(.vertical, 8)
             .frame(width: 260)
@@ -510,53 +451,26 @@ struct ContentView: View {
     @ViewBuilder
     func modelDropdownRow(modelId: String, icon: String) -> some View {
         let isDownloaded = modelManager.isModelDownloaded(modelId)
-        let isCloud = modelId.starts(with: "berget-")
-        let isDownloading = modelManager.isDownloading[modelId] == true
-        let progress = modelManager.downloadProgress[modelId] ?? 0
-        
+
         Button(action: {
             selectedModel = modelId
             showModelPopover = false
-            
-            // If the model isn't downloaded yet, start downloading immediately
-            if !isDownloaded && !isCloud && !isDownloading {
-                Task {
-                    await downloadModel(modelId)
-                }
-            }
         }) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
-                
+
                 Text(modelManager.displayName(for: modelId))
-                    .foregroundColor(isDownloaded || isCloud ? .primary : .secondary)
-                
-                if isDownloading {
-                    Spacer()
-                    AccentSpinner(size: 12, lineWidth: 1.5)
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.primaryAccent)
-                        .monospacedDigit()
-                } else if !isDownloaded && !isCloud {
-                    Text(modelManager.getModelSizeString(modelId))
-                        .font(.system(size: 11))
-                        .foregroundColor(.textTertiary)
-                    Spacer()
-                    Image(systemName: "arrow.down.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(.textTertiary)
-                } else {
-                    Spacer()
-                }
-                
+                    .foregroundColor(isDownloaded ? .primary : .secondary)
+
+                Spacer()
+
                 if selectedModel == modelId {
                     Image(systemName: "checkmark")
                         .foregroundColor(.primaryAccent)
                         .font(.system(size: 12, weight: .semibold))
-                } else if isDownloaded || isCloud {
+                } else if isDownloaded {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.textTertiary)
                         .font(.system(size: 12))
@@ -604,15 +518,7 @@ struct ContentView: View {
     }
     
     func getModelIcon(_ modelId: String) -> String {
-        if modelId.starts(with: "kb_whisper-") || modelId.starts(with: "openai_whisper-") {
-            return "laptopcomputer"
-        } else if modelId == "berget-kb-whisper-large" {
-            return "cloud"
-        } else if modelId.starts(with: "cloud-") {
-            return "cloud.fill"
-        } else {
-            return "cube"
-        }
+        return "laptopcomputer"
     }
 }
 

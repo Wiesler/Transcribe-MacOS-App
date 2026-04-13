@@ -7,15 +7,12 @@
 "drop_files_here" = "Släpp filer här för att transkribera";
 "search_history" = "Sökhistorik";
 "older" = "Äldre";
-"enter_url_placeholder" = "Ange YouTube, ljud- eller videofilens URL...";
-
 /* Settings - General */
 "settings" = "Inställningar";
 "general" = "Allmänt";
 "transcription" = "Transkribering";
 "local_models" = "Lokala modeller";
 "downloaded_models" = "Nedladdade modeller";
-"cloud_models" = "Molnmodeller";
 "api_keys" = "API-nycklar";
 "services" = "Tjänster";
 "app_language" = "Appspråk";
@@ -39,8 +36,6 @@
 /* Settings - Transcription Models */
 "local_transcription_models" = "Lokala transkriptionsmodeller";
 "local_models_description" = "KB Whisper-modeller optimerade för svenska";
-"cloud_transcription_models" = "Molntranskriptionsmodeller";
-"cloud_models_description" = "Modeller tillgängliga via API-tjänster";
 "fastest_lower_accuracy" = "Snabbast, lägre noggrannhet";
 "balanced_speed_accuracy" = "Balanserad hastighet och noggrannhet";
 "good_accuracy" = "God noggrannhet";
@@ -53,7 +48,7 @@
 "api_key_required" = "API-nyckel krävs";
 "available" = "Tillgänglig";
 "not_downloaded" = "Ej nedladdad";
-"no_models_downloaded" = "Inga modeller nedladdade ännu. Välj en modell i verktygsfältet — den laddas ner automatiskt vid första användning.";
+"no_models_downloaded" = "Inga modeller tillgängliga. Bygg appen med BundledModel inkluderat för att lägga till den medföljande modellen.";
 "delete_model" = "Ta bort modell";
 "delete_model_confirm" = "Är du säker på att du vill ta bort denna modell? Du kan ladda ner den igen senare.";
 "downloading_model" = "Laddar ner %@...";
@@ -61,10 +56,6 @@
 
 /* Settings - Model Info */
 "downloaded_models_description" = "Dessa modeller körs helt på din enhet. Ditt ljud och dina transkriberingar lämnar aldrig din dator.";
-"cloud_transcription_description" = "GDPR-säker — All data stannar i Sverige";
-"cloud_transcription_model_subtitle" = "Svensk optimerad transkribering";
-"berget_llm_description" = "GDPR-säker — All data stannar i Sverige";
-"berget_cloud_service_description" = "Svensk GDPR-säker molntjänst för transkribering";
 "ollama_llm_description" = "Ollama kör språkmodeller lokalt på din dator. Din data lämnar aldrig din maskin.";
 "ollama_not_installed" = "Ollama körs inte. Ladda ner från";
 "local_language_model" = "Lokal språkmodell";
@@ -79,7 +70,6 @@
 "available_models" = "Tillgängliga modeller:";
 "ollama_description" = "Ollama körs lokalt på din dator. Ingen API-nyckel krävs.";
 "ollama_local" = "Ollama (Lokal)";
-"get_api_key_berget" = "Hämta API-nyckel från Berget";
 
 /* Settings - AI Services */
 "ai_services" = "AI-tjänster";
@@ -184,12 +174,7 @@
 "analyzing_audio_file" = "Analyserar ljudfil...";
 "converting_audio_format" = "Konverterar ljud till optimalt format...";
 "splitting_audio_chunks" = "Delar upp ljudet i delar...";
-"sending_audio_berget" = "Skickar ljudfil till Berget...";
 "processing_local_model" = "Bearbetar med lokal modell...";
-"transcribing_chunk" = "Transkriberar del %d av %d...";
-"processing_chunk" = "Bearbetar del %d av %d...";
-"merging_results" = "Sammanfogar transkriptionsresultat...";
-"chunk_of" = "Del %d av %d";
 
 /* Unsaved changes */
 "unsaved_transcription" = "Osparad transkribering";
