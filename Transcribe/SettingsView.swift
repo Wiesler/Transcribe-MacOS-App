@@ -383,7 +383,8 @@ struct APIKeysView: View {
 
 struct LLMLocalModelsView: View {
     @EnvironmentObject var settingsManager: SettingsManager
-    
+    @State private var testTask: Task<Void, Never>?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -397,10 +398,9 @@ struct LLMLocalModelsView: View {
             .padding(.horizontal, 40)
             .padding(.top, 30)
             .padding(.bottom, 40)
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 25) {
-                    // Ollama Models
                     SettingsCard {
                         VStack(alignment: .leading, spacing: 15) {
                             Label {
@@ -412,73 +412,104 @@ struct LLMLocalModelsView: View {
                                     .font(.system(size: 18))
                                     .foregroundStyle(LinearGradient.accentGradient)
                             }
-                            
+
                             Text(localized("ollama_llm_description"))
                                 .font(.system(size: 12))
                                 .foregroundColor(.textSecondary)
-                            
+
                             Divider()
-                            
-                            // Connection Status
-                            HStack {
-                                Text(localized("host_url") + ":")
-                                    .font(.subheadline)
-                                TextField("", text: $settingsManager.ollamaHost)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 200)
-                                
-                                Button(localized("test_connection")) {
-                                    Task {
-                                        await settingsManager.checkOllamaConnection()
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-                            
-                            if !settingsManager.ollamaConnectionStatus.isEmpty {
-                                Text(settingsManager.ollamaConnectionStatus)
-                                    .font(.caption)
-                                    .foregroundColor(settingsManager.ollamaConnectionStatus.contains("Connected") ? .green : .orange)
-                            }
-                            
-                            // Available Models
-                            if !settingsManager.ollamaModels.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ForEach(settingsManager.ollamaModels, id: \.self) { model in
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(model)
-                                                    .font(.system(size: 13, weight: .medium))
-                                                Text(localized("local_language_model"))
-                                                    .font(.system(size: 11))
-                                                    .foregroundColor(.textSecondary)
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(.green)
-                                                .font(.system(size: 16))
-                                        }
-                                        .padding(12)
-                                        .background(Color.elevatedSurface)
-                                        .cornerRadius(8)
-                                    }
-                                }
-                            } else if settingsManager.ollamaModels.isEmpty && !settingsManager.ollamaConnectionStatus.isEmpty && !settingsManager.ollamaConnectionStatus.contains("Connected") {
-                                HStack(spacing: 4) {
-                                    Text(localized("ollama_not_installed"))
+
+                            if settingsManager.ollamaModels.isEmpty {
+                                // Not connected yet
+                                if settingsManager.ollamaConnectionStatus.isEmpty {
+                                    Text("Anslut till Ollama under Inställningar → API-nycklar för att välja modell.")
                                         .font(.system(size: 12))
                                         .foregroundColor(.textSecondary)
-                                    Link("ollama.com", destination: URL(string: "https://ollama.com")!)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.primaryAccent)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Text(localized("ollama_not_installed"))
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.textSecondary)
+                                        Link("ollama.com", destination: URL(string: "https://ollama.com")!)
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.primaryAccent)
+                                    }
+                                }
+                            } else {
+                                // Model picker
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(localized("model") + ":")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.textSecondary)
+
+                                    Picker("", selection: $settingsManager.selectedOllamaModel) {
+                                        ForEach(settingsManager.ollamaModels, id: \.self) { model in
+                                            Text(model).tag(model)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    .frame(width: 320)
+                                    .onChange(of: settingsManager.selectedOllamaModel) { _ in
+                                        settingsManager.llmTestResponse = ""
+                                    }
+                                }
+
+                                Divider()
+
+                                // Test message
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(spacing: 10) {
+                                        Button {
+                                            testTask?.cancel()
+                                            testTask = Task {
+                                                await settingsManager.sendTestMessage()
+                                            }
+                                        } label: {
+                                            HStack(spacing: 6) {
+                                                if settingsManager.llmTestIsLoading {
+                                                    ProgressView()
+                                                        .scaleEffect(0.7)
+                                                        .frame(width: 14, height: 14)
+                                                } else {
+                                                    Image(systemName: "paperplane")
+                                                        .font(.system(size: 12))
+                                                }
+                                                Text("Testa modell")
+                                                    .font(.system(size: 13))
+                                            }
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .disabled(settingsManager.selectedOllamaModel.isEmpty || settingsManager.llmTestIsLoading)
+
+                                        if !settingsManager.llmTestResponse.isEmpty && !settingsManager.llmTestIsLoading {
+                                            Button {
+                                                settingsManager.llmTestResponse = ""
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.textTertiary)
+                                                    .font(.system(size: 16))
+                                            }
+                                            .buttonStyle(.borderless)
+                                        }
+                                    }
+
+                                    if !settingsManager.llmTestResponse.isEmpty {
+                                        Text(settingsManager.llmTestResponse)
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.textPrimary)
+                                            .padding(10)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(Color.elevatedSurface)
+                                            .cornerRadius(8)
+                                            .textSelection(.enabled)
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 .padding(.horizontal, 40)
+                .padding(.bottom, 40)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -486,6 +517,9 @@ struct LLMLocalModelsView: View {
             Task {
                 await settingsManager.checkOllamaConnection()
             }
+        }
+        .onDisappear {
+            testTask?.cancel()
         }
     }
 }

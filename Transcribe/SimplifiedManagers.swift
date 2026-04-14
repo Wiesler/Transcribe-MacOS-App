@@ -96,6 +96,8 @@ class SettingsManager: ObservableObject {
     @Published var ollamaModels: [String] = []
     @Published var ollamaConnectionStatus: String = ""
     @AppStorage("selectedOllamaModel") var selectedOllamaModel: String = ""
+    @Published var llmTestResponse: String = ""
+    @Published var llmTestIsLoading: Bool = false
     
     // Recording settings
     @AppStorage("recordingQuality") var recordingQuality: String = "high"
@@ -153,6 +155,11 @@ class SettingsManager: ObservableObject {
                 await MainActor.run {
                     self.ollamaModels = modelNames
                     self.ollamaConnectionStatus = modelNames.isEmpty ? "Connected (no models installed)" : "Connected (\(modelNames.count) models)"
+                    // Auto-select first model if nothing is selected or selection no longer exists
+                    if !modelNames.isEmpty &&
+                       (self.selectedOllamaModel.isEmpty || !modelNames.contains(self.selectedOllamaModel)) {
+                        self.selectedOllamaModel = modelNames[0]
+                    }
                 }
             } else {
                 await MainActor.run {
@@ -168,6 +175,37 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    /// Sends a short test message to the selected Ollama model and streams the response.
+    func sendTestMessage() async {
+        guard !selectedOllamaModel.isEmpty else { return }
+        await MainActor.run {
+            self.llmTestResponse = ""
+            self.llmTestIsLoading = true
+        }
+        let service = LLMService()
+        do {
+            let stream = service.streamCompletion(
+                systemPrompt: "Du är en hjälpsam assistent.",
+                userMessage: "Hej, svara med ett kort meddelande på svenska för att bekräfta att du fungerar.",
+                provider: .ollama,
+                model: selectedOllamaModel,
+                ollamaHost: ollamaHost
+            )
+            for try await token in stream {
+                await MainActor.run {
+                    self.llmTestResponse += token
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.llmTestResponse = "Fel: \(error.localizedDescription)"
+            }
+        }
+        await MainActor.run {
+            self.llmTestIsLoading = false
+        }
+    }
+
     func resetToDefaults() {
         defaultLanguage = "sv"
         enableAutoLanguageDetection = true

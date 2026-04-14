@@ -89,7 +89,6 @@ Modellen är hostad på [mickekringai/kb-whisper-coreml](https://huggingface.co/
 - All transkribering sker lokalt
 - Inspelningar lagras i `~/Library/Caches/Transcribe/` och raderas när appen avslutas
 - Kvarliggande filer från forcerad avslutning rensas vid nästa uppstart
-- API-nycklar sparas i macOS Nyckelring, inte i klartext
 - Ingen analys, ingen spårning, ingen telemetri
 
 ## Licens
