@@ -56,7 +56,17 @@ class WhisperKitService {
         let variant = modelVariant(for: modelId)
         let repo = modelRepo(for: modelId)
         let downloadBase = modelManager.downloadBase
-        
+
+        // Check app bundle first (supports offline/firewalled distribution)
+        if let bundledPath = ModelManager.bundledModelPath(),
+           ModelManager.bundledModelId == modelId {
+            let config = WhisperKitConfig(modelFolder: bundledPath, verbose: true, download: false)
+            let kit = try await WhisperKit(config)
+            whisperKit = kit
+            currentModelId = modelId
+            return
+        }
+
         // Check if we already have this model downloaded locally
         if let cachedFolder = modelManager.cachedModelFolder(for: modelId) {
             let config = WhisperKitConfig(
@@ -97,101 +107,10 @@ class WhisperKitService {
             // If download failed, fall through to re-download below
         }
         
-        // Model not cached locally — download with progress tracking, then load
-        
-        // Signal download started
-        modelManager.isDownloading[modelId] = true
-        modelManager.downloadProgress[modelId] = 0
-        
-        do {
-            // Phase 1: Download via WhisperKit.download() with progress callback
-            let modelFolder = try await WhisperKit.download(
-                variant: variant,
-                downloadBase: downloadBase,
-                from: repo,
-                progressCallback: { progress in
-                    let fraction = Double(progress.completedUnitCount) / max(Double(progress.totalUnitCount), 1)
-                    let speed = progress.userInfo[.throughputKey] as? Double
-                    Task { @MainActor in
-                        modelManager.downloadProgress[modelId] = fraction
-                        if let speed {
-                            modelManager.downloadSpeed[modelId] = speed
-                        }
-                    }
-                }
-            )
-            
-            // Download complete
-            modelManager.isDownloading[modelId] = false
-            modelManager.downloadProgress[modelId] = 1.0
-            modelManager.downloadSpeed.removeValue(forKey: modelId)
-            
-            // Phase 2: Load the downloaded model (no network needed)
-            let config = WhisperKitConfig(
-                modelFolder: modelFolder.path,
-                verbose: true,
-                download: false
-            )
-            
-            let kit = try await WhisperKit(config)
-            whisperKit = kit
-            currentModelId = modelId
-            
-            // Persist the resolved model folder path for future offline use
-            modelManager.saveModelFolderPath(modelFolder.path, for: modelId)
-        } catch {
-            // Clear download state on failure
-            modelManager.isDownloading[modelId] = false
-            modelManager.downloadProgress.removeValue(forKey: modelId)
-            modelManager.downloadSpeed.removeValue(forKey: modelId)
-            whisperKit = nil
-            throw error
-        }
-    }
-    
-    /// Downloads a model without loading it into memory.
-    /// Used when the user selects a non-downloaded model from the dropdown.
-    func downloadOnly(modelId: String) async throws {
-        let modelManager = ModelManager.shared
-        
-        // Skip if already downloaded or already downloading
-        guard modelManager.cachedModelFolder(for: modelId) == nil else { return }
-        guard modelManager.isDownloading[modelId] != true else { return }
-        
-        let variant = modelVariant(for: modelId)
-        let repo = modelRepo(for: modelId)
-        let downloadBase = modelManager.downloadBase
-        
-        modelManager.isDownloading[modelId] = true
-        modelManager.downloadProgress[modelId] = 0
-        
-        do {
-            let modelFolder = try await WhisperKit.download(
-                variant: variant,
-                downloadBase: downloadBase,
-                from: repo,
-                progressCallback: { progress in
-                    let fraction = Double(progress.completedUnitCount) / max(Double(progress.totalUnitCount), 1)
-                    let speed = progress.userInfo[.throughputKey] as? Double
-                    Task { @MainActor in
-                        modelManager.downloadProgress[modelId] = fraction
-                        if let speed {
-                            modelManager.downloadSpeed[modelId] = speed
-                        }
-                    }
-                }
-            )
-            
-            modelManager.isDownloading[modelId] = false
-            modelManager.downloadProgress[modelId] = 1.0
-            modelManager.downloadSpeed.removeValue(forKey: modelId)
-            modelManager.saveModelFolderPath(modelFolder.path, for: modelId)
-        } catch {
-            modelManager.isDownloading[modelId] = false
-            modelManager.downloadProgress.removeValue(forKey: modelId)
-            modelManager.downloadSpeed.removeValue(forKey: modelId)
-            throw error
-        }
+        // Model is not available locally — network downloads are disabled.
+        // Users must either bundle the model in BundledModel/ or pre-populate
+        // the model cache via the download_bundled_model.sh script.
+        throw TranscriptionError.modelNotFound
     }
     
     func loadModel(_ modelName: String) async throws {
@@ -211,7 +130,8 @@ class WhisperKitService {
                     let needsInit = (self.whisperKit == nil || self.currentModelId != modelId)
                     if needsInit {
                         // Show appropriate status: "loading" if cached, "downloading" if not
-                        let isCached = ModelManager.shared.cachedModelFolder(for: modelId) != nil
+                        let isBundled = ModelManager.bundledModelId == modelId && ModelManager.bundledModelPath() != nil
+                        let isCached = isBundled || ModelManager.shared.cachedModelFolder(for: modelId) != nil
                         let isAlreadyDownloading = ModelManager.shared.isDownloading[modelId] == true
                         let statusMessage: String
                         if isCached {

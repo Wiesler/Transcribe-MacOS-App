@@ -1,11 +1,10 @@
 import Foundation
 
-/// Unified LLM service supporting OpenAI-compatible chat completion APIs (Berget, Ollama).
+/// Unified LLM service supporting Ollama (local) via OpenAI-compatible chat completion API.
 /// Streams responses token-by-token via an AsyncThrowingStream.
 final class LLMService: Sendable {
-    
+
     enum Provider: String, Sendable {
-        case berget
         case ollama
     }
     
@@ -37,9 +36,8 @@ final class LLMService: Sendable {
     /// - Parameters:
     ///   - systemPrompt: The system prompt (selected prompt + additional info)
     ///   - userMessage: The transcription text
-    ///   - provider: Which LLM provider to use
-    ///   - model: The model ID (e.g. "meta-llama/Llama-3.3-70B-Instruct")
-    ///   - apiKey: API key (required for Berget, ignored for Ollama)
+    ///   - provider: Which LLM provider to use (Ollama only)
+    ///   - model: The model ID
     ///   - ollamaHost: Ollama base URL (default localhost:11434)
     /// - Returns: An AsyncThrowingStream of String tokens
     func streamCompletion(
@@ -47,29 +45,18 @@ final class LLMService: Sendable {
         userMessage: String,
         provider: Provider,
         model: String,
-        apiKey: String = "",
         ollamaHost: String = "http://127.0.0.1:11434"
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let baseURL: String
-                    switch provider {
-                    case .berget:
-                        guard !apiKey.isEmpty else {
-                            continuation.finish(throwing: LLMError.noAPIKey)
-                            return
-                        }
-                        baseURL = "https://api.berget.ai/v1"
-                    case .ollama:
-                        baseURL = ollamaHost + "/v1"
-                    }
-                    
+                    let baseURL = ollamaHost + "/v1"
+
                     guard let url = URL(string: "\(baseURL)/chat/completions") else {
                         continuation.finish(throwing: LLMError.invalidURL)
                         return
                     }
-                    
+
                     // Build request body
                     let body: [String: Any] = [
                         "model": model,
@@ -79,13 +66,10 @@ final class LLMService: Sendable {
                             ["role": "user", "content": userMessage]
                         ]
                     ]
-                    
+
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    if provider == .berget {
-                        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                    }
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
                     request.timeoutInterval = 300
                     

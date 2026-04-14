@@ -30,20 +30,13 @@ struct AboutView: View {
             
             VStack(alignment: .leading, spacing: 10) {
                 featureRow("Swedish-optimized with KB Whisper")
-                featureRow("Local & cloud LLM processing")
+                featureRow("Fully local — no external connections")
                 featureRow("Privacy-focused design")
                 featureRow("Built with Swift & SwiftUI")
             }
-            
+
             Spacer()
-            
-            HStack(spacing: 20) {
-                Link("Website", destination: URL(string: "https://transcribe.app")!)
-                Link("Support", destination: URL(string: "https://transcribe.app/support")!)
-                Link("Privacy Policy", destination: URL(string: "https://transcribe.app/privacy")!)
-            }
-            .font(.caption)
-            
+
             Text("© 2025 Transcribe. All rights reserved.")
                 .font(.caption)
                 .foregroundColor(.secondary)

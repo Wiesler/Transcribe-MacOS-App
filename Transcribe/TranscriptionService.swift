@@ -25,24 +25,11 @@ class TranscriptionService {
                         throw TranscriptionError.noModelSelected
                     }
                     
-                    if selectedModel.starts(with: "kb_whisper-") ||  // KB CoreML models
-                       selectedModel.starts(with: "openai_whisper-") {
-                        // Use WhisperKit for standard Whisper models and KB CoreML models
-                        try await transcribeWithWhisperKit(
-                            fileURL: fileURL,
-                            modelId: selectedModel,
-                            continuation: continuation
-                        )
-                    } else if selectedModel.starts(with: "cloud-") {
-                        // Use cloud model (OpenAI API)
-                        try await transcribeWithCloudModel(
-                            fileURL: fileURL,
-                            modelId: selectedModel,
-                            continuation: continuation
-                        )
-                    } else {
-                        throw TranscriptionError.unsupportedModel
-                    }
+                    try await transcribeWithWhisperKit(
+                        fileURL: fileURL,
+                        modelId: selectedModel,
+                        continuation: continuation
+                    )
                 } catch {
                     continuation.finish(throwing: error)
                 }
@@ -102,22 +89,6 @@ class TranscriptionService {
         }
         
         // If the loop exits without isComplete, still finish the stream
-        continuation.finish()
-    }
-    
-    private func transcribeWithCloudModel(
-        fileURL: URL,
-        modelId: String,
-        continuation: AsyncThrowingStream<TranscriptionUpdate, Error>.Continuation
-    ) async throws {
-        // Implementation for cloud models (OpenAI, Groq, etc.)
-        // This would use the API keys stored in UserDefaults
-        continuation.yield(TranscriptionUpdate(
-            text: "Cloud transcription not yet implemented",
-            progress: 1.0,
-            segments: [],
-            isComplete: true
-        ))
         continuation.finish()
     }
     

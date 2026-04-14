@@ -89,7 +89,7 @@ class AudioPreprocessor {
     ]
     
     /// Returns true when the file is already in a format WhisperKit can consume
-    /// without conversion **and** its size is within the Berget upload limit.
+    /// without conversion.
     private func isOptimalFormat(url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         guard Self.nativeAudioExtensions.contains(ext) else { return false }

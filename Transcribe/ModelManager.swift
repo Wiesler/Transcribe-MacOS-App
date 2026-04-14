@@ -9,6 +9,21 @@ class ModelManager: ObservableObject {
     @Published var isDownloading: [String: Bool] = [:]
     @Published var downloadSpeed: [String: Double] = [:]  // bytes/sec
     
+    /// Model ID of the model that is bundled inside the app bundle.
+    /// Set to nil if no model is bundled.
+    static let bundledModelId: String? = "kb_whisper-large-coreml"
+
+    /// Returns the path to the bundled model folder inside Bundle.main, or nil
+    /// if no model is bundled or the folder does not exist.
+    static func bundledModelPath() -> String? {
+        guard let modelId = bundledModelId,
+              let resourceURL = Bundle.main.resourceURL else { return nil }
+        let path = resourceURL.appendingPathComponent("BundledModel").path
+        guard FileManager.default.fileExists(atPath: path) else { return nil }
+        _ = modelId  // suppress unused warning — used as the associated model ID
+        return path
+    }
+
     /// All available local model IDs
     static let allLocalModels: [String] = [
         "kb_whisper-base-coreml",
@@ -47,7 +62,6 @@ class ModelManager: ObservableObject {
         "openai_whisper-medium": "Whisper Medium",
         "openai_whisper-large-v2": "Whisper Large v2",
         "openai_whisper-large-v3": "Whisper Large v3",
-        "berget-kb-whisper-large": "KB Whisper Large (Berget)",
     ]
     
     /// UserDefaults key for persisted model folder paths
@@ -120,6 +134,12 @@ class ModelManager: ObservableObject {
     
     /// Checks all enabled models still exist on disk.
     private func validateDownloadedModels() {
+        // Register bundled model if present in the app bundle
+        if let bundledId = Self.bundledModelId, Self.bundledModelPath() != nil {
+            downloadedModels.insert(bundledId)
+        }
+
+        // Validate UserDefaults-cached downloads
         let paths = loadModelFolderPaths()
         for (modelId, path) in paths {
             if FileManager.default.fileExists(atPath: path) {

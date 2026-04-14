@@ -88,15 +88,9 @@ class SettingsManager: ObservableObject {
     @AppStorage("autoSaveTranscriptions") var autoSaveTranscriptions: Bool = true
     @AppStorage("transcriptionSaveLocation") var transcriptionSaveLocation: String = ""
     
-    // API Keys stored securely in Keychain
-    @Published var bergetKey: String = ""
-    
     // Text processing prompts
     @Published var textProcessingPrompts: [TextProcessingPrompt] = []
-    
-    // Berget LLM settings
-    @AppStorage("selectedBergetLLMModel") var selectedBergetLLMModel: String = "meta-llama/Llama-3.3-70B-Instruct"
-    
+
     // Ollama settings
     @AppStorage("ollamaHost") var ollamaHost: String = "http://127.0.0.1:11434"
     @Published var ollamaModels: [String] = []
@@ -115,7 +109,6 @@ class SettingsManager: ObservableObject {
     @AppStorage("minimizeToStatusBar") var minimizeToStatusBar: Bool = false
     
     // Privacy settings
-    @AppStorage("enableAnalytics") var enableAnalytics: Bool = false
     @AppStorage("localOnlyMode") var localOnlyMode: Bool = false
     @AppStorage("clearHistoryOnQuit") var clearHistoryOnQuit: Bool = false
     
@@ -124,32 +117,10 @@ class SettingsManager: ObservableObject {
     @AppStorage("defaultOutputFormat") var defaultOutputFormat: String = "txt"
     
     init() {
-        // Migrate API key from UserDefaults to Keychain if needed
-        if let legacyKey = UserDefaults.standard.string(forKey: "bergetAPIKey"), !legacyKey.isEmpty {
-            if KeychainHelper.set(legacyKey, forKey: "bergetAPIKey") {
-                UserDefaults.standard.removeObject(forKey: "bergetAPIKey")
-            }
-        }
-        
-        // Load API key from Keychain
-        self.bergetKey = KeychainHelper.get("bergetAPIKey") ?? ""
-        
         // Load text processing prompts
         loadPrompts()
     }
-    
-    func saveAPIKey(_ key: String, for provider: APIKeyType) {
-        switch provider {
-        case .berget:
-            bergetKey = key
-            KeychainHelper.set(key, forKey: "bergetAPIKey")
-        }
-    }
-    
-    func validateAPIKey(_ key: String, for provider: APIKeyType) async -> Bool {
-        return !key.isEmpty
-    }
-    
+
     func checkOllamaConnection() async {
         // Real Ollama API check
         await MainActor.run {
@@ -217,7 +188,6 @@ class SettingsManager: ObservableObject {
         showStatusBarIcon = true
         launchAtStartup = false
         minimizeToStatusBar = false
-        enableAnalytics = false
         localOnlyMode = false
         clearHistoryOnQuit = false
         defaultModel = "kb_whisper-small-coreml"
@@ -357,6 +327,3 @@ class SettingsManager: ObservableObject {
     }
 }
 
-enum APIKeyType: String {
-    case berget = "Berget"
-}
