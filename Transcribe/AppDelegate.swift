@@ -40,6 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Quick Transcribe", action: #selector(quickTranscribe), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Preferences...", action: #selector(showPreferences), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "About Transcribe...", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
@@ -111,19 +112,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindow?.makeKeyAndOrderFront(nil)
     }
     
+    @objc func showAbout() {
+        showAboutWindow()
+    }
+
     func showAboutWindow() {
         if aboutWindow == nil {
-            aboutWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 520, height: 480),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false
             )
-            aboutWindow?.title = "About Transcribe"
-            aboutWindow?.center()
-            aboutWindow?.contentView = NSHostingView(rootView: AboutView())
+            window.title = "About Transcribe"
+            window.center()
+            window.contentView = NSHostingView(rootView: AboutView())
+            window.isReleasedWhenClosed = false
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
+                self?.aboutWindow = nil
+            }
+            aboutWindow = window
         }
         aboutWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 

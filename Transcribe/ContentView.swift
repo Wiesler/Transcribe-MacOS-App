@@ -19,6 +19,8 @@ struct ContentView: View {
                 RecordingView()
             } else if appState.showSystemAudioView {
                 SystemAudioRecordingView()
+            } else if appState.showSammanfattaView {
+                SammanfattaView(transcribedText: appState.sammanfattaText)
             } else if appState.showTranscriptionView, let url = appState.currentTranscriptionURL {
                 TranscriptionView(fileURL: url)
             } else {

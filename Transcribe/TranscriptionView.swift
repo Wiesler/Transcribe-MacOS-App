@@ -597,6 +597,33 @@ struct TranscriptionView: View {
                     .padding(.horizontal, 20)
                 }
                 
+                // Sammanfatta Section
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(action: {
+                        appState.openSammanfatta(text: viewModel.transcribedText)
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 13))
+                            Text("Sammanfatta")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .foregroundColor(sectionDisabled ? .textTertiary : .white)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(sectionDisabled
+                                      ? Color.textTertiary.opacity(0.12)
+                                      : LinearGradient.accentGradient)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(TranscriptionButtonStyle())
+                    .disabled(sectionDisabled)
+                    .padding(.horizontal, 20)
+                }
+
                 // Process Transcription Section
                 VStack(alignment: .leading, spacing: 10) {
                     Text(localized("process_transcription"))
