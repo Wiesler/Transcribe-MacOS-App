@@ -96,6 +96,8 @@ class SettingsManager: ObservableObject {
     @Published var ollamaModels: [String] = []
     @Published var ollamaConnectionStatus: String = ""
     @AppStorage("selectedOllamaModel") var selectedOllamaModel: String = ""
+    @Published var llmTestResponse: String = ""
+    @Published var llmTestIsLoading: Bool = false
     
     // Recording settings
     @AppStorage("recordingQuality") var recordingQuality: String = "high"
@@ -127,17 +129,19 @@ class SettingsManager: ObservableObject {
             self.ollamaConnectionStatus = "Connecting..."
         }
         
-        guard let url = URL(string: "\(ollamaHost)/api/tags") else {
+        // Use the standard OpenAI /v1/models endpoint — works with Ollama and any
+        // other OpenAI-compatible server (LM Studio, vLLM, llama.cpp, etc.)
+        guard let url = URL(string: "\(ollamaHost)/v1/models") else {
             await MainActor.run {
                 self.ollamaModels = []
                 self.ollamaConnectionStatus = "Invalid URL"
             }
             return
         }
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
-            
+
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 await MainActor.run {
@@ -146,13 +150,19 @@ class SettingsManager: ObservableObject {
                 }
                 return
             }
-            
+
+            // OpenAI-compatible format: { "data": [{ "id": "model-name", ... }] }
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let models = json["models"] as? [[String: Any]] {
-                let modelNames = models.compactMap { $0["name"] as? String }
+               let models = json["data"] as? [[String: Any]] {
+                let modelNames = models.compactMap { $0["id"] as? String }
                 await MainActor.run {
                     self.ollamaModels = modelNames
                     self.ollamaConnectionStatus = modelNames.isEmpty ? "Connected (no models installed)" : "Connected (\(modelNames.count) models)"
+                    // Auto-select first model if nothing is selected or selection no longer exists
+                    if !modelNames.isEmpty &&
+                       (self.selectedOllamaModel.isEmpty || !modelNames.contains(self.selectedOllamaModel)) {
+                        self.selectedOllamaModel = modelNames[0]
+                    }
                 }
             } else {
                 await MainActor.run {
@@ -163,11 +173,42 @@ class SettingsManager: ObservableObject {
         } catch {
             await MainActor.run {
                 self.ollamaModels = []
-                self.ollamaConnectionStatus = "Not running (start Ollama first)"
+                self.ollamaConnectionStatus = "Not running"
             }
         }
     }
     
+    /// Sends a short test message to the selected Ollama model and streams the response.
+    func sendTestMessage() async {
+        guard !selectedOllamaModel.isEmpty else { return }
+        await MainActor.run {
+            self.llmTestResponse = ""
+            self.llmTestIsLoading = true
+        }
+        let service = LLMService()
+        do {
+            let stream = service.streamCompletion(
+                systemPrompt: "Du är en hjälpsam assistent.",
+                userMessage: "Hej, svara med ett kort meddelande på svenska för att bekräfta att du fungerar.",
+                provider: .ollama,
+                model: selectedOllamaModel,
+                ollamaHost: ollamaHost
+            )
+            for try await token in stream {
+                await MainActor.run {
+                    self.llmTestResponse += token
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.llmTestResponse = "Fel: \(error.localizedDescription)"
+            }
+        }
+        await MainActor.run {
+            self.llmTestIsLoading = false
+        }
+    }
+
     func resetToDefaults() {
         defaultLanguage = "sv"
         enableAutoLanguageDetection = true

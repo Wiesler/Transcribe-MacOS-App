@@ -215,3 +215,10 @@
 /* Theme */
 "switch_to_light" = "Switch to Light Mode";
 "switch_to_dark" = "Switch to Dark Mode";
+
+/* AppDelegate Menu */
+"open_transcribe" = "Open Transcribe";
+"quick_transcribe" = "Quick Transcribe";
+"about_transcribe_menu" = "About Transcribe...";
+"about_transcribe" = "About Transcribe";
+"quit" = "Quit";

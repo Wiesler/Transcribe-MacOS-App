@@ -215,3 +215,10 @@
 /* Theme */
 "switch_to_light" = "Byt till ljust läge";
 "switch_to_dark" = "Byt till mörkt läge";
+
+/* AppDelegate Menu */
+"open_transcribe" = "Öppna Transcribe";
+"quick_transcribe" = "Snabbtranskribering";
+"about_transcribe_menu" = "Om Transcribe...";
+"about_transcribe" = "Om Transcribe";
+"quit" = "Avsluta";

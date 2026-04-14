@@ -34,15 +34,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Open Transcribe", action: #selector(openMainWindow), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: localized("open_transcribe"), action: #selector(openMainWindow), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "New Recording", action: #selector(startNewRecording), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Quick Transcribe", action: #selector(quickTranscribe), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: localized("new_recording"), action: #selector(startNewRecording), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: localized("quick_transcribe"), action: #selector(quickTranscribe), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Preferences...", action: #selector(showPreferences), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "About Transcribe...", action: #selector(showAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: localized("preferences") + "...", action: #selector(showPreferences), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: localized("about_transcribe_menu"), action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: localized("quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
         statusBarItem?.menu = menu
     }
@@ -83,7 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        quickTranscribeWindow.title = "Quick Transcribe"
+        quickTranscribeWindow.title = localized("quick_transcribe")
         quickTranscribeWindow.center()
         quickTranscribeWindow.contentView = NSHostingView(rootView: QuickTranscribeView())
         quickTranscribeWindow.makeKeyAndOrderFront(nil)
@@ -97,7 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 backing: .buffered,
                 defer: false
             )
-            preferencesWindow?.title = "Preferences"
+            preferencesWindow?.title = localized("preferences")
             preferencesWindow?.center()
             
             guard let manager = settingsManager else {
@@ -124,7 +124,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 backing: .buffered,
                 defer: false
             )
-            window.title = "About Transcribe"
+            window.title = localized("about_transcribe")
             window.center()
             window.contentView = NSHostingView(rootView: AboutView())
             window.isReleasedWhenClosed = false
