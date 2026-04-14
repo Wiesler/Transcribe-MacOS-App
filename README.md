@@ -1,31 +1,31 @@
 # Transcribe
 
-A native macOS app for speech-to-text transcription. Runs entirely on-device using WhisperKit and CoreML -- no data leaves your machine unless you choose cloud transcription. Optimized for Swedish with KB Whisper models, but supports 100+ languages.
+En native macOS-app för tal-till-text-transkribering. Körs helt lokalt på enheten med WhisperKit och CoreML -- ingen data lämnar din dator. Optimerad för svenska med KB Whisper-modeller, men stödjer 100+ språk.
 
 ![Swift](https://img.shields.io/badge/Swift-6.1-orange)
 ![macOS](https://img.shields.io/badge/macOS-26+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-![Main window](screenshot-main.jpg)
+![Huvudfönster](screenshot-main.jpg)
 
-![Transcription with LLM processing](screenshot-transcribe.jpg)
+![Transkribering med LLM-bearbetning](screenshot-transcribe.jpg)
 
-## Features
+## Funktioner
 
-- **Local transcription** -- WhisperKit runs Whisper models on Apple Silicon via CoreML. No internet required once a model is downloaded. Supports audio files (WAV, MP3, M4A, FLAC, AAC) and video files (MP4, MOV) -- audio is extracted automatically.
-- **Swedish-optimized models** -- KB Whisper models from [KBLab](https://huggingface.co/KBLab), fine-tuned for Swedish speech.
-- **Built-in recording** -- Record directly in the app with live audio level metering and input device selection.
-- **System audio capture** -- Record all audio playing on your Mac (meetings, media, notifications) using ScreenCaptureKit. Optionally mix in your microphone to capture both sides of a meeting. macOS asks for permission on first use.
-- **Text processing with LLM** -- Summarize, extract action points, or run custom prompts on transcriptions using Berget AI or a local Ollama instance.
-- **Cloud transcription (optional)** -- Berget AI provides GDPR-compliant cloud transcription for when you need it.
-- **Privacy by default** -- All recordings and downloads are stored in a temporary cache and automatically deleted when the app quits.
-- **100+ languages** -- Whisper supports broad multilingual transcription with automatic language detection.
+- **Lokal transkribering** -- WhisperKit kör Whisper-modeller på Apple Silicon via CoreML. Ingen internetanslutning krävs. Stödjer ljudfiler (WAV, MP3, M4A, FLAC, AAC) och videofiler (MP4, MOV) -- ljudet extraheras automatiskt.
+- **Svensk-optimerade modeller** -- KB Whisper-modeller från [KBLab](https://huggingface.co/KBLab), finjusterade för svenska.
+- **Inbyggd inspelning** -- Spela in direkt i appen med live-nivåmätning och val av inmatningsenhet.
+- **Systemljudsinspelning** -- Spela in allt ljud som spelas upp på din Mac (möten, media, notiser) med ScreenCaptureKit. Blanda in din mikrofon för att fånga båda sidor av ett möte. macOS ber om tillåtelse vid första användningen.
+- **Sammanfatta** -- Ny skärm med mötespecifika LLM-prompter: mötesöversikt, detaljerat protokoll, deltagaranalys, beslutslogg och uppföljningsplan.
+- **Textbearbetning med LLM** -- Sammanfatta, extrahera åtgärdspunkter eller kör egna prompter på transkriptioner via Ollama eller annan OpenAI-kompatibel server.
+- **Integritet som standard** -- Alla inspelningar lagras i en tillfällig cache och raderas automatiskt när appen avslutas.
+- **100+ språk** -- Whisper stödjer bred flerspråkig transkribering med automatisk språkdetektering.
 
-## Requirements
+## Krav
 
-- macOS 26 (Tahoe) or later
+- macOS 26 (Tahoe) eller senare
 - Apple Silicon (M1+)
-- 8 GB RAM minimum (16 GB recommended for large models)
+- 8 GB RAM minimum (16 GB rekommenderas)
 
 ## Installation
 
@@ -34,57 +34,70 @@ git clone https://github.com/mickekring/Transcribe-MacOS-App.git
 cd Transcribe-MacOS-App
 ```
 
-### Building
+### Bygg
 
-There is currently an Xcode 26 beta bug where building from the Xcode UI fails with an `___llvm_profile_runtime` undefined symbol error. This is caused by `CLANG_COVERAGE_MAPPING` defaulting to YES, which adds coverage instrumentation to pure-C SPM dependencies (yyjson, a transitive dependency of WhisperKit) without linking the profiling runtime. Build from the command line instead:
+Det finns för närvarande ett Xcode 26 beta-fel där bygge från Xcodes gränssnitt misslyckas med ett `___llvm_profile_runtime`-symbolfel. Detta beror på att `CLANG_COVERAGE_MAPPING` är aktiverat som standard, vilket lägger till täckningsinstrumentering i rena C-SPM-beroenden (yyjson, ett transitivt beroende av WhisperKit) utan att länka profileringsbiblioteket. Bygg från kommandoraden istället:
 
 ```bash
 xcodebuild build -scheme Transcribe CLANG_COVERAGE_MAPPING=NO
 ```
 
-The default model (KB Whisper Small) downloads automatically on first launch.
+### Modell -- git LFS-setup
 
-## Models
+Appen levereras med KB Whisper Large inbyggd i appbunten. För att hämta modellen innan bygge, använd git LFS:
 
-**Local (on-device):**
+```bash
+# Installera git-lfs (macOS via Homebrew)
+brew install git-lfs
+git lfs install
 
-| Model | Size | Notes |
-|-------|------|-------|
-| KB Whisper Base | ~150 MB | Fast, good for Swedish |
-| KB Whisper Small | ~500 MB | Default. Best balance of speed and accuracy for Swedish |
-| KB Whisper Medium | ~1.5 GB | Higher accuracy |
-| KB Whisper Large | ~3 GB | Highest accuracy |
-| OpenAI Whisper | Base--Large v3 | General multilingual models |
+# Ladda ner endast KB Whisper Large-varianten (~3,1 GB)
+GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/mickekringai/kb-whisper-coreml /tmp/kb-whisper-coreml
+cd /tmp/kb-whisper-coreml
+git lfs pull --include="large/*"
 
-KB Whisper CoreML models are hosted at [mickekringai/kb-whisper-coreml](https://huggingface.co/mickekringai/kb-whisper-coreml) on Hugging Face.
+# Kopiera till projektet
+cp -r large /sökväg/till/Transcribe-MacOS-App/Transcribe/Resources/BundledModel
+```
 
-**Cloud (optional):**
+Alternativt finns ett Python-baserat skript: `bash scripts/download_bundled_model.sh`
 
-[Berget AI](https://berget.ai) -- Swedish cloud infrastructure, GDPR-compliant. Requires an API key configured in Settings.
+Efter nedladdning, lägg till modellmappen i Xcode som en mappreferens (blå mappikon):
+1. Högerklicka på gruppen "Resources" → "Add Files to Transcribe…"
+2. Välj mappen `BundledModel`
+3. Välj "Create folder references" (blå ikon, inte gul)
+4. Se till att "Transcribe"-målet är markerat → Lägg till
 
-## Tech Stack
+## Modell
 
-- **SwiftUI** -- Native macOS interface with dark/light mode
-- **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** -- On-device speech recognition via CoreML
-- **[YouTubeKit](https://github.com/nickkval/YouTubeKit)** -- YouTube audio downloading
-- **AVFoundation / CoreAudio** -- Audio recording, playback, and device management
-- **ScreenCaptureKit** -- System audio capture
-- **Security.framework** -- API keys stored in macOS Keychain
+**Lokal (på enheten):**
 
-## Privacy and Security
+KB Whisper Large (~3,1 GB) -- högsta noggrannhet, optimerad för svenska, inbyggd i appen för helt offline-användning.
 
-- All transcription happens locally by default
-- Recordings and YouTube downloads are stored in `~/Library/Caches/Transcribe/` and deleted on app quit
-- Leftover files from force-quits are cleaned up on next launch
-- API keys are stored in the macOS Keychain, not in plaintext
-- No analytics, no tracking, no telemetry
+Modellen är hostad på [mickekringai/kb-whisper-coreml](https://huggingface.co/mickekringai/kb-whisper-coreml) på Hugging Face.
 
-## License
+## Teknisk stack
 
-MIT License -- see [LICENSE](LICENSE) for details.
+- **SwiftUI** -- Native macOS-gränssnitt med mörkt/ljust läge
+- **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** -- Tal-till-text på enheten via CoreML
+- **AVFoundation / CoreAudio** -- Ljudinspelning, uppspelning och enhetshantering
+- **ScreenCaptureKit** -- Systemljudsinspelning
+- **Security.framework** -- API-nycklar sparas i macOS Nyckelring
 
-## Author
+## Integritet och säkerhet
+
+- All transkribering sker lokalt
+- Inspelningar lagras i `~/Library/Caches/Transcribe/` och raderas när appen avslutas
+- Kvarliggande filer från forcerad avslutning rensas vid nästa uppstart
+- API-nycklar sparas i macOS Nyckelring, inte i klartext
+- Ingen analys, ingen spårning, ingen telemetri
+
+## Licens
+
+MIT-licens -- se [LICENSE](LICENSE) för detaljer.
+
+## Upphovsman
 
 **Micke Kring** -- [mickekring.se](https://mickekring.se)
 
-Built with [Claude Code](https://claude.ai/code).
+Byggt med [Claude Code](https://claude.ai/code).
