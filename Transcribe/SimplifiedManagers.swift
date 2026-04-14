@@ -129,17 +129,19 @@ class SettingsManager: ObservableObject {
             self.ollamaConnectionStatus = "Connecting..."
         }
         
-        guard let url = URL(string: "\(ollamaHost)/api/tags") else {
+        // Use the standard OpenAI /v1/models endpoint — works with Ollama and any
+        // other OpenAI-compatible server (LM Studio, vLLM, llama.cpp, etc.)
+        guard let url = URL(string: "\(ollamaHost)/v1/models") else {
             await MainActor.run {
                 self.ollamaModels = []
                 self.ollamaConnectionStatus = "Invalid URL"
             }
             return
         }
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
-            
+
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 await MainActor.run {
@@ -148,10 +150,11 @@ class SettingsManager: ObservableObject {
                 }
                 return
             }
-            
+
+            // OpenAI-compatible format: { "data": [{ "id": "model-name", ... }] }
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let models = json["models"] as? [[String: Any]] {
-                let modelNames = models.compactMap { $0["name"] as? String }
+               let models = json["data"] as? [[String: Any]] {
+                let modelNames = models.compactMap { $0["id"] as? String }
                 await MainActor.run {
                     self.ollamaModels = modelNames
                     self.ollamaConnectionStatus = modelNames.isEmpty ? "Connected (no models installed)" : "Connected (\(modelNames.count) models)"
@@ -170,7 +173,7 @@ class SettingsManager: ObservableObject {
         } catch {
             await MainActor.run {
                 self.ollamaModels = []
-                self.ollamaConnectionStatus = "Not running (start Ollama first)"
+                self.ollamaConnectionStatus = "Not running"
             }
         }
     }

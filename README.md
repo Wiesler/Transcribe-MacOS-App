@@ -95,8 +95,4 @@ Modellen är hostad på [mickekringai/kb-whisper-coreml](https://huggingface.co/
 
 MIT-licens -- se [LICENSE](LICENSE) för detaljer.
 
-## Upphovsman
-
-**Micke Kring** -- [mickekring.se](https://mickekring.se)
-
-Byggt med [Claude Code](https://claude.ai/code).
+Baserat på ett projekt av [Micke Kring](https://mickekring.se). Byggt med [Claude Code](https://claude.ai/code).
