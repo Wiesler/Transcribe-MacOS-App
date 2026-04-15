@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      # Unit tests don't use the bundled model, but the Xcode project
+      # references the BundledModel folder. Create a stub so the build
+      # doesn't fail on the missing folder reference.
+      - name: Create BundledModel stub
+        run: mkdir -p Transcribe/Resources/BundledModel
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -scheme Transcribe \
+            -destination 'platform=macOS' \
+            -only-testing:TranscribeTests \
+            CLANG_COVERAGE_MAPPING=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
